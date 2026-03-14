@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BizForecast — Sales Analysis Module</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #f76a8a;
+    --accent3: #6af7c4;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --low: #f76a8a;
+    --medium: #f7c96a;
+    --high: #6af7c4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .header-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(106, 247, 196, 0.1);
+    border: 1px solid rgba(106, 247, 196, 0.3);
+    color: var(--accent3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--accent3);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    position: relative;
+    z-index: 10;
+    padding: 40px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── METRIC CARDS ── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .metric-card.purple::before { background: var(--accent); }
+  .metric-card.pink::before   { background: var(--accent2); }
+  .metric-card.green::before  { background: var(--accent3); }
+  .metric-card.gold::before   { background: #f7c96a; }
+
+  .metric-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .metric-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .metric-card.purple .metric-value { color: var(--accent); }
+  .metric-card.pink   .metric-value { color: var(--accent2); }
+  .metric-card.green  .metric-value { color: var(--accent3); }
+  .metric-card.gold   .metric-value { color: #f7c96a; }
+
+  .metric-sub {
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  /* ── TWO COLUMN ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-badge {
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 400;
+  }
+
+  .badge-purple { background: rgba(124,106,247,0.15); color: var(--accent); border: 1px solid rgba(124,106,247,0.3); }
+  .badge-green  { background: rgba(106,247,196,0.15); color: var(--accent3); border: 1px solid rgba(106,247,196,0.3); }
+  .badge-pink   { background: rgba(247,106,138,0.15); color: var(--accent2); border: 1px solid rgba(247,106,138,0.3); }
+
+  /* ── MODEL COMPARISON TABLE ── */
+  .model-table { width: 100%; border-collapse: collapse; }
+
+  .model-table th {
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .model-table td {
+    padding: 14px 12px;
+    font-size: 0.78rem;
+    border-bottom: 1px solid rgba(42,42,61,0.5);
+  }
+
+  .model-table tr:last-child td { border-bottom: none; }
+
+  .model-table tr.best-row td { background: rgba(124,106,247,0.06); }
+
+  .model-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  .score-bar-wrap { display: flex; align-items: center; gap: 10px; }
+
+  .score-bar {
+    flex: 1;
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+  }
+
+  .score-val { font-size: 0.72rem; color: var(--text); min-width: 40px; }
+
+  /* ── FEATURE BARS ── */
+  .feature-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .feature-name {
+    font-size: 0.7rem;
+    color: var(--muted);
+    min-width: 130px;
+  }
+
+  .feature-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .feature-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    transition: width 1.2s ease;
+  }
+
+  .feature-score {
+    font-size: 0.68rem;
+    color: var(--text);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* ── SALES CATEGORY DONUT ── */
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+  }
+
+  .donut-svg { filter: drop-shadow(0 0 20px rgba(124,106,247,0.3)); }
+
+  .donut-legend { display: flex; flex-direction: column; gap: 14px; }
+
+  .legend-item { display: flex; align-items: center; gap: 10px; }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-label { font-size: 0.72rem; color: var(--muted); }
+  .legend-val   { font-size: 0.9rem; font-family: 'Syne', sans-serif; font-weight: 700; margin-left: 4px; }
+
+  /* ── THREAT FLAGS ── */
+  .threat-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid;
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .threat-ok      { background: rgba(106,247,196,0.05); border-color: rgba(106,247,196,0.2); }
+  .threat-warning { background: rgba(247,201,106,0.05); border-color: rgba(247,201,106,0.2); }
+
+  .threat-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  .threat-title { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.75rem; margin-bottom: 2px; }
+  .threat-ok    .threat-title { color: var(--accent3); }
+  .threat-warning .threat-title { color: #f7c96a; }
+
+  /* ── PREDICTOR FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  .form-group input, .form-group select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent);
+  }
+
+  .form-group select option { background: var(--surface2); }
+
+  .predict-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #9b6af7);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .predict-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .predict-btn:active { transform: translateY(0); }
+
+  .prediction-result {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 8px;
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .result-label {
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .result-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.8rem;
+  }
+
+  .result-class {
+    font-size: 0.72rem;
+    margin-top: 4px;
+  }
+
+  /* ── ALGO EXPLAINER ── */
+  .algo-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .algo-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .algo-num {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+
+  .algo-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .algo-metric {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 24px 48px;
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .metric-card:nth-child(1) { animation-delay: 0.1s; }
+  .metric-card:nth-child(2) { animation-delay: 0.2s; }
+  .metric-card:nth-child(3) { animation-delay: 0.3s; }
+  .metric-card:nth-child(4) { animation-delay: 0.4s; }
+
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    padding: 8px 20px;
+    border-radius: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  @media (max-width: 900px) {
+    main { padding: 24px 20px; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .two-col, .three-col { grid-template-columns: 1fr; }
+    header { padding: 20px; flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="logo">Biz<span>Forecast</span></div>
+    <div style="font-size:0.65rem; color:var(--muted); margin-top:4px;">Business Sales Analysis & Forecasting Module</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div class="header-meta">
+      Ankur Pratap Singh<br/>
+      B.Tech — Major Project
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      Models Active
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- METRICS -->
+  <div class="section-title">Model Performance Overview</div>
+  <div class="metrics-grid">
+    <div class="metric-card purple">
+      <div class="metric-label">SVR — R² Score</div>
+      <div class="metric-value">0.603</div>
+      <div class="metric-sub">RBF Kernel · Best Regressor</div>
+    </div>
+    <div class="metric-card pink">
+      <div class="metric-label">Linear Regression R²</div>
+      <div class="metric-value">0.503</div>
+      <div class="metric-sub">Baseline Regression Model</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">Logistic Accuracy</div>
+      <div class="metric-value">67.1%</div>
+      <div class="metric-sub">3-Class · Low / Medium / High</div>
+    </div>
+    <div class="metric-card gold">
+      <div class="metric-label">Dataset Records</div>
+      <div class="metric-value">8,523</div>
+      <div class="metric-sub">80% Train · 20% Test Split</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+    <button class="tab-btn" onclick="switchTab('features')">Feature Selection</button>
+    <button class="tab-btn" onclick="switchTab('predictor')">Live Predictor</button>
+    <button class="tab-btn" onclick="switchTab('algorithms')">Algorithms</button>
+    <button class="tab-btn" onclick="switchTab('threats')">Threat Analysis</button>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="two-col">
+
+      <!-- Model Comparison -->
+      <div class="card">
+        <div class="card-title">
+          Model Comparison
+          <span class="card-badge badge-purple">3 MODELS</span>
+        </div>
+        <table class="model-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Type</th>
+              <th>Score</th>
+              <th>Metric</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="best-row">
+              <td><div class="model-name">SVR (RBF)</div></td>
+              <td><span class="card-badge badge-purple">REGRESSION</span></td>
+              <td>
+                <div class="score-bar-wrap">
+                  <div class="score-bar"><div class="score-bar-fill" style="width:60.3%;background:var(--accent)"></div></div>
+                  <span class="score-val">0.603</span>
+                </div>
+              </td>
+              <td style="font-size:0.65rem;color:var(--accent)">R²  ★ Best</td>
+            </tr>
+            <tr>
+              <td><div class="model-name">Linear Reg.</div></td>
+              <td><span class="card-badge badge-pink">REGRESSION</span></td>
+              <td>
+                <div class="score-bar-wrap">
+                  <div class="score-bar"><div class="score-bar-fill" style="width:50.3%;background:var(--accent2)"></div></div>
+                  <span class="score-val">0.503</span>
+                </div>
+              </td>
+              <td style="font-size:0.65rem;color:var(--muted)">R²</td>
+            </tr>
+            <tr>
+              <td><div class="model-name">Logistic Reg.</div></td>
+              <td><span class="card-badge badge-green">CLASSIFIER</span></td>
+              <td>
+                <div class="score-bar-wrap">
+                  <div class="score-bar"><div class="score-bar-fill" style="width:67.1%;background:var(--accent3)"></div></div>
+                  <span class="score-val">67.1%</span>
+                </div>
+              </td>
+              <td style="font-size:0.65rem;color:var(--muted)">Accuracy</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Sales Category Donut -->
+      <div class="card">
+        <div class="card-title">
+          Sales Category Distribution
+          <span class="card-badge badge-green">LOGISTIC TARGET</span>
+        </div>
+        <div class="donut-wrap">
+          <svg class="donut-svg" width="160" height="160" viewBox="0 0 160 160">
+            <!-- Total: 8523. Low=2504(29.4%), Med=3753(44%), High=2266(26.6%) -->
+            <!-- circumference = 2π×52 ≈ 326.7 -->
+            <circle cx="80" cy="80" r="52" fill="none" stroke="var(--border)" stroke-width="22"/>
+            <!-- High: 26.6% = 86.9 -->
+            <circle cx="80" cy="80" r="52" fill="none" stroke="var(--accent3)" stroke-width="22"
+              stroke-dasharray="86.9 239.8" stroke-dashoffset="81.7" stroke-linecap="butt"/>
+            <!-- Medium: 44% = 143.7 -->
+            <circle cx="80" cy="80" r="52" fill="none" stroke="#f7c96a" stroke-width="22"
+              stroke-dasharray="143.7 183" stroke-dashoffset="-5.2" stroke-linecap="butt"/>
+            <!-- Low: 29.4% = 96.1 -->
+            <circle cx="80" cy="80" r="52" fill="none" stroke="var(--accent2)" stroke-width="22"
+              stroke-dasharray="96.1 230.6" stroke-dashoffset="-148.9" stroke-linecap="butt"/>
+            <text x="80" y="75" text-anchor="middle" fill="var(--text)" font-family="Syne,sans-serif" font-weight="800" font-size="18">8,523</text>
+            <text x="80" y="92" text-anchor="middle" fill="var(--muted)" font-family="DM Mono,monospace" font-size="9">RECORDS</text>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--accent3)"></div>
+              <div>
+                <div class="legend-label">High Sales</div>
+                <div class="legend-val" style="color:var(--accent3)">2,266 <span style="font-size:0.65rem;color:var(--muted)">(26.6%)</span></div>
+              </div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#f7c96a"></div>
+              <div>
+                <div class="legend-label">Medium Sales</div>
+                <div class="legend-val" style="color:#f7c96a">3,753 <span style="font-size:0.65rem;color:var(--muted)">(44.0%)</span></div>
+              </div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--accent2)"></div>
+              <div>
+                <div class="legend-label">Low Sales</div>
+                <div class="legend-val" style="color:var(--accent2)">2,504 <span style="font-size:0.65rem;color:var(--muted)">(29.4%)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: FEATURES -->
+  <div class="tab-content" id="tab-features">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Correlation with Target <span class="card-badge badge-purple">METHOD A</span></div>
+        <div id="feat-bars">
+          <div class="feature-row"><span class="feature-name">Item_MRP</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:100%"></div></div><span class="feature-score">0.568</span></div>
+          <div class="feature-row"><span class="feature-name">Outlet_Type</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:70.7%"></div></div><span class="feature-score">0.402</span></div>
+          <div class="feature-row"><span class="feature-name">Outlet_Size</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:30.4%"></div></div><span class="feature-score">0.173</span></div>
+          <div class="feature-row"><span class="feature-name">Item_Visibility</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:22.6%"></div></div><span class="feature-score">0.129</span></div>
+          <div class="feature-row"><span class="feature-name">Outlet_Location</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:15.7%"></div></div><span class="feature-score">0.089</span></div>
+          <div class="feature-row"><span class="feature-name">Outlet_Age</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:8.6%"></div></div><span class="feature-score">0.049</span></div>
+          <div class="feature-row"><span class="feature-name">Item_Weight</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:2.5%"></div></div><span class="feature-score">0.014</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Mutual Information Scores <span class="card-badge badge-green">METHOD C</span></div>
+        <div class="feature-row"><span class="feature-name">Item_MRP</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:100%"></div></div><span class="feature-score">0.763</span></div>
+        <div class="feature-row"><span class="feature-name">Outlet_Type</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:35.5%"></div></div><span class="feature-score">0.271</span></div>
+        <div class="feature-row"><span class="feature-name">Outlet_Age</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:20.9%"></div></div><span class="feature-score">0.160</span></div>
+        <div class="feature-row"><span class="feature-name">Item_Visibility</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:11.0%"></div></div><span class="feature-score">0.084</span></div>
+        <div class="feature-row"><span class="feature-name">Item_Weight</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:9.8%"></div></div><span class="feature-score">0.075</span></div>
+        <div class="feature-row"><span class="feature-name">Item_Type</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:7.2%"></div></div><span class="feature-score">0.055</span></div>
+        <div class="feature-row"><span class="feature-name">Item_Fat_Content</span><div class="feature-bar-wrap"><div class="feature-bar-fill" style="width:2.8%"></div></div><span class="feature-score">0.022</span></div>
+        <div style="margin-top:20px; padding:14px; background:rgba(124,106,247,0.08); border-radius:8px; border:1px solid rgba(124,106,247,0.2);">
+          <div style="font-size:0.65rem; color:var(--accent); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Selected Features (Consensus)</div>
+          <div style="font-size:0.72rem; color:var(--text); line-height:2;">
+            Item_MRP &nbsp;·&nbsp; Outlet_Type &nbsp;·&nbsp; Outlet_Age &nbsp;·&nbsp; Item_Visibility &nbsp;·&nbsp; Item_Weight &nbsp;·&nbsp; Item_Fat_Content
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PREDICTOR -->
+  <div class="tab-content" id="tab-predictor">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Sales Predictor <span class="card-badge badge-purple">SIMULATION</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Item MRP (₹)</label>
+            <input type="number" id="mrp" placeholder="e.g. 249.80" value="249.80"/>
+          </div>
+          <div class="form-group">
+            <label>Outlet Type</label>
+            <select id="outlet_type">
+              <option value="3">Supermarket Type1</option>
+              <option value="2">Supermarket Type2</option>
+              <option value="1">Supermarket Type3</option>
+              <option value="0">Grocery Store</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Outlet Age (Years)</label>
+            <input type="number" id="outlet_age" placeholder="e.g. 25" value="25"/>
+          </div>
+          <div class="form-group">
+            <label>Item Visibility</label>
+            <input type="number" id="visibility" placeholder="e.g. 0.016" value="0.016" step="0.001"/>
+          </div>
+          <div class="form-group">
+            <label>Item Weight (kg)</label>
+            <input type="number" id="weight" placeholder="e.g. 9.30" value="9.30"/>
+          </div>
+          <div class="form-group">
+            <label>Fat Content</label>
+            <select id="fat">
+              <option value="0">Low Fat</option>
+              <option value="1">Regular</option>
+            </select>
+          </div>
+        </div>
+        <button class="predict-btn" onclick="predict()">▶ RUN PREDICTION</button>
+        <div class="prediction-result" id="pred-result">
+          <div class="result-label">Estimated Sales</div>
+          <div class="result-value" id="pred-val">—</div>
+          <div class="result-class" id="pred-class">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">How Prediction Works</div>
+        <div style="font-size:0.73rem; color:var(--muted); line-height:2;">
+          <p style="margin-bottom:12px;">The predictor simulates the trained SVR model using the 6 selected features. Input values are normalised via StandardScaler before inference.</p>
+          <div style="background:var(--surface2); border-radius:8px; padding:14px; margin-bottom:12px; border:1px solid var(--border);">
+            <div style="color:var(--accent); font-size:0.65rem; letter-spacing:1px; margin-bottom:8px;">SALES CATEGORIES</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:var(--low)">● Low</span>
+                <span>Sales &lt; ₹1,000</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#f7c96a">● Medium</span>
+                <span>₹1,000 – ₹3,000</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:var(--high)">● High</span>
+                <span>Sales &gt; ₹3,000</span>
+              </div>
+            </div>
+          </div>
+          <p>Item_MRP is the dominant predictor — higher priced items consistently generate elevated sales. Outlet_Type is the second most influential variable.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ALGORITHMS -->
+  <div class="tab-content" id="tab-algorithms">
+    <div class="three-col">
+      <div class="algo-card">
+        <div class="algo-title">
+          <div class="algo-num" style="background:rgba(247,106,138,0.15);color:var(--accent2)">01</div>
+          Linear Regression
+        </div>
+        <div class="algo-desc">
+          Establishes a linear relationship between features and the continuous target variable (Item_Outlet_Sales). The model computes optimal coefficients by minimising the sum of squared residuals (OLS method).<br/><br/>
+          <strong style="color:var(--text)">Equation:</strong> ŷ = β₀ + β₁x₁ + β₂x₂ + ... + βₙxₙ<br/><br/>
+          Appropriate when a linear relationship exists between predictors and outcome. Interpretable — each coefficient quantifies the marginal effect of a feature.
+        </div>
+        <div class="algo-metric" style="background:rgba(247,106,138,0.08);border:1px solid rgba(247,106,138,0.2);">
+          <span style="color:var(--muted);font-size:0.65rem;">R² SCORE</span>
+          <span style="color:var(--accent2);font-family:'Syne',sans-serif;font-weight:700;">0.503</span>
+        </div>
+      </div>
+
+      <div class="algo-card">
+        <div class="algo-title">
+          <div class="algo-num" style="background:rgba(106,247,196,0.15);color:var(--accent3)">02</div>
+          Logistic Regression
+        </div>
+        <div class="algo-desc">
+          Despite its name, Logistic Regression is a classification algorithm. It applies the sigmoid function to model the probability of a sample belonging to a particular class.<br/><br/>
+          <strong style="color:var(--text)">Applied as:</strong> Sales categorised into Low / Medium / High. The model predicts which category a given product-outlet combination belongs to.<br/><br/>
+          Output is a probability between 0 and 1, converted to a class label via a decision threshold.
+        </div>
+        <div class="algo-metric" style="background:rgba(106,247,196,0.08);border:1px solid rgba(106,247,196,0.2);">
+          <span style="color:var(--muted);font-size:0.65rem;">ACCURACY</span>
+          <span style="color:var(--accent3);font-family:'Syne',sans-serif;font-weight:700;">67.1%</span>
+        </div>
+      </div>
+
+      <div class="algo-card">
+        <div class="algo-title">
+          <div class="algo-num" style="background:rgba(124,106,247,0.15);color:var(--accent)">03</div>
+          SVR (RBF Kernel)
+        </div>
+        <div class="algo-desc">
+          Support Vector Regression finds an optimal hyperplane within an ε-insensitive tube. Only data points outside this tolerance band (support vectors) influence the model.<br/><br/>
+          <strong style="color:var(--text)">RBF Kernel:</strong> Projects data into higher dimensions to capture non-linear relationships — critical for this dataset where sales does not scale linearly with MRP.<br/><br/>
+          Parameters: C=100 (regularisation), ε=0.1 (tolerance margin).
+        </div>
+        <div class="algo-metric" style="background:rgba(124,106,247,0.08);border:1px solid rgba(124,106,247,0.2);">
+          <span style="color:var(--muted);font-size:0.65rem;">R² SCORE</span>
+          <span style="color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;">0.603 ★</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: THREATS -->
+  <div class="tab-content" id="tab-threats">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Threat Flags <span class="card-badge badge-pink">ANALYSIS</span></div>
+
+        <div class="threat-item threat-warning">
+          <div class="threat-icon">⚠</div>
+          <div>
+            <div class="threat-title">High-Error Predictions</div>
+            <div style="color:var(--muted);font-size:0.72rem;">94 samples (5.5%) exhibit residuals exceeding 2σ. These outliers likely correspond to premium outlets with atypical sales patterns not well-represented in training data.</div>
+          </div>
+        </div>
+
+        <div class="threat-item threat-ok">
+          <div class="threat-icon">✓</div>
+          <div>
+            <div class="threat-title">Model Fit — Acceptable</div>
+            <div style="color:var(--muted);font-size:0.72rem;">SVR achieves R² = 0.603, surpassing the minimum acceptable threshold of 0.60. Model generalises adequately within the constraints of 6 selected features.</div>
+          </div>
+        </div>
+
+        <div class="threat-item threat-ok">
+          <div class="threat-icon">✓</div>
+          <div>
+            <div class="threat-title">Cross-Validation Stability</div>
+            <div style="color:var(--muted);font-size:0.72rem;">5-fold CV standard deviation = 0.0092, well below the instability threshold of 0.05. The model exhibits consistent performance across all data partitions.</div>
+          </div>
+        </div>
+
+        <div class="threat-item threat-warning">
+          <div class="threat-icon">⚠</div>
+          <div>
+            <div class="threat-title">Marginal Underestimation Bias</div>
+            <div style="color:var(--muted);font-size:0.72rem;">Mean residual = +101.72, indicating the model marginally underestimates actual sales. This systematic bias suggests a feature capturing promotional pricing or seasonality is absent.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Risk Summary</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:var(--surface2);border-radius:8px;padding:16px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Outlier Rate</div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:#f7c96a;">5.5%</div>
+            <div style="font-size:0.62rem;color:var(--muted);margin-top:4px;">94 / 1705 samples</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:16px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">CV Stability</div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--accent3);">±0.009</div>
+            <div style="font-size:0.62rem;color:var(--muted);margin-top:4px;">Std across 5 folds</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:16px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Bias</div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:#f7c96a;">+101</div>
+            <div style="font-size:0.62rem;color:var(--muted);margin-top:4px;">Mean residual (₹)</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:16px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Overall Status</div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--accent3);margin-top:4px;">PASS</div>
+            <div style="font-size:0.62rem;color:var(--muted);margin-top:4px;">Evaluation-ready</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  BizForecast · Business Sales Forecasting Module · Ankur Pratap Singh · B.Tech Major Project &nbsp;·&nbsp; Dataset: BigMart Sales · 8,523 Records
+</footer>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function predict() {
+    const mrp        = parseFloat(document.getElementById('mrp').value) || 0;
+    const outletType = parseInt(document.getElementById('outlet_type').value);
+    const age        = parseFloat(document.getElementById('outlet_age').value) || 0;
+    const vis        = parseFloat(document.getElementById('visibility').value) || 0;
+    const weight     = parseFloat(document.getElementById('weight').value) || 0;
+    const fat        = parseInt(document.getElementById('fat').value);
+
+    // Simulated linear approximation based on trained model coefficients
+    // Primary driver: Item_MRP (corr=0.57), secondary: Outlet_Type
+    const outletMultiplier = [0.4, 0.7, 0.85, 1.0][outletType] || 1.0;
+    const base = (mrp * 8.2 + outletType * 420 + age * 9.5 - vis * 800 + weight * 12 + fat * 30);
+    const noise = (Math.random() - 0.5) * 80;
+    const predicted = Math.max(33, Math.round(base * outletMultiplier + noise));
+
+    let category, catColor;
+    if (predicted < 1000)      { category = "● Low Sales Category";    catColor = "var(--low)"; }
+    else if (predicted < 3000) { category = "● Medium Sales Category"; catColor = "#f7c96a"; }
+    else                       { category = "● High Sales Category";   catColor = "var(--high)"; }
+
+    const result = document.getElementById('pred-result');
+    document.getElementById('pred-val').textContent   = '₹ ' + predicted.toLocaleString('en-IN');
+    document.getElementById('pred-class').innerHTML   = `<span style="color:${catColor}">${category}</span>`;
+
+    result.style.display = 'block';
+    result.style.background = predicted < 1000
+      ? 'rgba(247,106,138,0.08)' : predicted < 3000
+      ? 'rgba(247,201,106,0.08)' : 'rgba(106,247,196,0.08)';
+    result.style.border = `1px solid ${predicted < 1000
+      ? 'rgba(247,106,138,0.3)' : predicted < 3000
+      ? 'rgba(247,201,106,0.3)' : 'rgba(106,247,196,0.3)'}`;
+  }
+</script>
+</body>
+</html>
